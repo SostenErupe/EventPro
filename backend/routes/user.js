@@ -1,13 +1,25 @@
-const express = require('express')
+const express = require('express');
 const userController = require('../controllers/userController');
-const eventsController = require('../controllers/eventsController');
 
-const router = express.Router()
+const router = express.Router();
 
+// Authentication routes
 router.post('/login', userController.login);
 router.post('/signup', userController.signup);
+
+// User verification routes
 router.get('/checkEmail', userController.checkEmail);
 router.get('/checkUsername', userController.checkUsername);
-router.get('/getUser/:username', userController.getUserDetails);
 
-module.exports = router
+// User profile routes
+router.get('/profile', userController.getUserProfile); // Get current user's profile
+router.get('/getUserById:userId', userController.getUserDetails); // Get specific user's details
+router.put('/updateProfile', userController.updateProfile); // Update profile
+
+// Admin-only routes
+router.get('/admin/users', userController.getAllUsers); 
+router.put('/admin/users/:userId', userController.adminUpdateUser);
+
+// User payments routes
+
+module.exports = router;

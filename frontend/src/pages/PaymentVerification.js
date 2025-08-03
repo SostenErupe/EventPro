@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
   Button, Card, Chip, Container, 
-  Paper, Stack, Typography, CircularProgress
+  Paper, Stack, Typography, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField
 } from '@mui/material';
-import { Refresh, Search } from '@mui/icons-material';
+import { Refresh, Search, Check, Close } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import axios from 'axios';
 
@@ -11,30 +13,34 @@ const PaymentVerification = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [currentPayment, setCurrentPayment] = useState(null);
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationAction, setVerificationAction] = useState('');
 
   const backendUrl = 'http://localhost:5000/api';
 
-const fetchPayments = async () => {
-  try {
-    setLoading(true);
-    console.log('Fetching payments from:', `${backendUrl}/payments/getPayments`);
-    
-    const response = await axios.get(`${backendUrl}/payments/getPayments`);
-    console.log('API Response:', response);
-    
-    // Check if response.data exists and has payments array
-    const paymentsData = response.data?.payments || response.data || [];
-    console.log('Parsed payments data:', paymentsData);
-    
-    setPayments(paymentsData);
-  } catch (error) {
-    console.error('Full error:', error);
-    console.error('Error response:', error.response);
-    setPayments([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching payments from:', `${backendUrl}/payments/getPayments`);
+      
+      const response = await axios.get(`${backendUrl}/payments/getPayments`);
+      console.log('API Response:', response);
+      
+      // Check if response.data exists and has payments array
+      const paymentsData = response.data?.payments || response.data || [];
+      console.log('Parsed payments data:', paymentsData);
+      
+      setPayments(paymentsData);
+    } catch (error) {
+      console.error('Full error:', error);
+      console.error('Error response:', error.response);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchPayments();
@@ -45,6 +51,7 @@ const fetchPayments = async () => {
     return (
       (payment.User_Name?.toLowerCase() || '').includes(search) ||
       (payment.Event_Name?.toLowerCase() || '').includes(search) ||
+      (payment.Payment_Method?.toLowerCase() || '').includes(search) ||
       (payment.Payment_ID?.toString() || '').includes(search)
     );
   });
@@ -61,6 +68,40 @@ const fetchPayments = async () => {
     }
   };
 
+  const openVerifyDialog = (payment, action) => {
+    setCurrentPayment(payment);
+    setVerificationAction(action);
+    setVerifyDialogOpen(true);
+  };
+
+  // Frontend API call example
+  const handleVerify = async () => {
+    try {
+      setLoading(true);
+      if (!currentPayment) return;
+
+      const response = await axios.put(
+        `${backendUrl}/payments/verifyPayment/${currentPayment.Payment_ID}`, 
+        {
+          status: verificationAction,
+          adminId: 1, // Hardcoded for now - replace with actual admin ID
+          notes: verificationNotes
+        }
+      );
+      
+      console.log(response.data);
+      await fetchPayments(); // Refresh the payments list
+      setVerifyDialogOpen(false); // Close the dialog
+    } catch (error) {
+      console.error('Verification error:', {
+        message: error.message,
+        response: error.response?.data
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const columns = [
     { field: 'Payment_ID', headerName: 'ID', width: 70 },
     { field: 'User_Name', headerName: 'User', width: 150 },
@@ -96,13 +137,47 @@ const fetchPayments = async () => {
       renderCell: (params) => (
         <Chip
           label={params.value}
-          color={params.value === 'Verified' ? 'success' : 'warning'}
+          color={params.value === 'Verified' ? 'success' : 
+                params.value === 'Rejected' ? 'error' : 'warning'}
         />
       )
     },
     {
-      field: 'actions',
-      headerName: 'Actions',
+      field: 'verifyActions',
+      headerName: 'Verify',
+      width: 200,
+      renderCell: (params) => (
+        params.row.Verification_Status === 'Pending' ? (
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              startIcon={<Check />}
+              onClick={() => openVerifyDialog(params.row, 'Verified')}
+            >
+              Approve
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<Close />}
+              onClick={() => openVerifyDialog(params.row, 'Rejected')}
+            >
+              Reject
+            </Button>
+          </Stack>
+        ) : (
+          <Typography variant="body2" color="textSecondary">
+            {params.row.Name || 'System'}
+          </Typography>
+        )
+      )
+    },
+    {
+      field: 'refundActions',
+      headerName: 'Refund',
       width: 150,
       renderCell: (params) => (
         params.row.Payment_Status !== 'Refunded' && (
@@ -169,6 +244,37 @@ const fetchPayments = async () => {
           />
         </div>
       </Card>
+
+      {/* Verification Dialog */}
+      <Dialog open={verifyDialogOpen} onClose={() => setVerifyDialogOpen(false)}>
+        <DialogTitle>
+          {verificationAction === 'Verified' ? 'Approve' : 'Reject'} Payment #{currentPayment?.Payment_ID}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Verification Notes"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={4}
+            value={verificationNotes}
+            onChange={(e) => setVerificationNotes(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVerifyDialogOpen(false)}>Cancel</Button>
+        <Button 
+          onClick={handleVerify} // Use the fixed handler
+          color={verificationAction === 'Verified' ? 'success' : 'error'}
+          variant="contained"
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={24} /> : verificationAction === 'Verified' ? 'Approve' : 'Reject'}
+        </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

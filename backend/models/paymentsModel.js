@@ -50,5 +50,17 @@ module.exports = {
       WHERE p.Payment_ID = ?
     `;
     db.query(query, [paymentId], callback);
+  },
+  verifyPayment: (paymentId, status, adminId, notes, callback) => {
+    const query = `
+      UPDATE Payments 
+      SET 
+        Verification_Status = ?,
+        Verification_Date = NOW(),
+        Verified_By = ?,
+        Verification_Notes = ?
+      WHERE Payment_ID = ?
+    `;
+    db.query(query, [status, adminId, notes, paymentId], callback);
   }
 };

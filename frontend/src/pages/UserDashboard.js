@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, Typography, Grid, Card, CardContent, CardMedia, Button, 
+  Box, Typography, Grid, Card, CardContent, Button, 
   Chip, Avatar, Tabs, Tab, Paper, Divider, CircularProgress, Snackbar, Alert
 } from '@mui/material';
 import { CalendarToday, LocationOn, ConfirmationNumber, Person, Logout } from '@mui/icons-material';
@@ -229,7 +229,7 @@ const UserDashboard = () => {
                     }}
                     sx={{ mt: 1 }}
                   >
-                    {event.Available_Tickets > 0 ? 'Get Tickets' : 'Sold Out'}
+                    {event.Available_Tickets > 0 ? 'Purchase Tickets' : 'Sold Out'}
                   </Button>
                 </CardContent>
               </EventCard>
@@ -271,7 +271,7 @@ const UserDashboard = () => {
                           {ticket.event?.title || ticket.Event_Name || 'Unknown Event'}
                         </Typography>
                         <Chip 
-                          label={ticket.status || ticket.Status || 'Pending'} 
+                          label={ticket.status || ticket.Status} 
                           color={
                             (ticket.status || ticket.Status) === 'Confirmed' ? 'success' : 
                             (ticket.status || ticket.Status) === 'Cancelled' ? 'error' : 'warning'
@@ -338,21 +338,15 @@ const UserDashboard = () => {
               {venues.map((venue) => (
                 <Grid item xs={12} sm={6} md={4} key={venue._id || venue.Venue_ID}>
                   <EventCard onClick={() => navigate(`/venue/${venue._id || venue.Venue_ID}`)}>
-                    <CardMedia
-                      component="img"
-                      height="140"
-                      image={venue.image || '/images/venue-placeholder.jpg'}
-                      alt={venue.name || venue.Venue_Name || 'Venue'}
-                    />
                     <CardContent>
                       <Typography gutterBottom variant="h6">
                         {venue.name || venue.Venue_Name || 'Unnamed Venue'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {venue.location || venue.Venue_Location || 'Location not specified'}
+                        {venue.city || venue.City || 'Location not specified'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        Capacity: {venue.capacity || venue.Venue_Capacity || 'N/A'}
+                        Capacity: {venue.capacity || venue.Capacity || 'N/A'}
                       </Typography>
                     </CardContent>
                   </EventCard>

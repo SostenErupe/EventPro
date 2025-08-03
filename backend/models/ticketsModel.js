@@ -46,7 +46,7 @@ module.exports = {
     db.query(query, [bookingID, paymentMethod, amount], callback);
   },
   // Get user tickets with all related information
-    getUserTickets: (userId, callback) => {
+  getUserTickets: (userId, callback) => {
     const query = `
       SELECT
         t.Ticket_ID,
@@ -63,25 +63,18 @@ module.exports = {
         p.Verification_Status,
         b.Booking_Date AS Purchase_Date
       FROM Tickets t
+      JOIN Users u ON t.User_ID = u.User_ID  -- Explicit user join
       JOIN Bookings b ON t.User_ID = b.User_ID AND t.Event_ID = b.Event_ID
       JOIN Events e ON t.Event_ID = e.Event_ID
       JOIN Venues v ON e.Venue_ID = v.Venue_ID
       LEFT JOIN Payments p ON b.Booking_ID = p.Booking_ID
-      WHERE t.User_ID = ?
+      WHERE t.User_ID = ?  -- Ensure filtering by the requested user
       ORDER BY b.Booking_Date DESC
     `;
     
     db.query(query, [userId], (err, results) => {
       if (err) return callback(err);
-      
-      // Format dates for frontend
-      const formattedTickets = results.map(ticket => ({
-        ...ticket,
-        Event_Date: ticket.Event_Date ? new Date(ticket.Event_Date).toISOString().split('T')[0] : null,
-        Purchase_Date: ticket.Purchase_Date ? new Date(ticket.Purchase_Date).toISOString().split('T')[0] : null
-      }));
-      
-      callback(null, formattedTickets);
+      callback(null, results);
     });
   },
   // Get statistics for admin dashboard

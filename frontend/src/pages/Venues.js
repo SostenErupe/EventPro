@@ -85,7 +85,7 @@ const Venues = () => {
     width: 200,
   },
   {
-    field: 'Location',
+    field: 'State',
     headerName: 'Location',
     width: 250,
     valueGetter: (params) => {

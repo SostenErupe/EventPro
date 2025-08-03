@@ -24,6 +24,7 @@ import UserPayments from "./pages/UserPayments";
 import PaymentVerification from "./pages/PaymentVerification";
 import PaymentPage from "./pages/PaymentsPage";
 import UserTickets from "./pages/UserTickets";
+import UserProfile from "./pages/UserProfile";
 
 // Role-based route wrapper
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -69,7 +70,16 @@ function App() {
               <UserDashboard />
             </ProtectedRoute>
           } />
-          
+          <Route path="/book_tickets" element={
+            <ProtectedRoute>
+              <TicketBooking />
+            </ProtectedRoute>
+          } />
+          <Route path="/user_profile" element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          } />
           {/* Shared authenticated routes */}
           <Route path="/events" element={
             <ProtectedRoute>
@@ -84,11 +94,6 @@ function App() {
           <Route path="/tickets" element={
             <ProtectedRoute>
               <Tickets />
-            </ProtectedRoute>
-          } />
-          <Route path="/book_tickets" element={
-            <ProtectedRoute>
-              <TicketBooking />
             </ProtectedRoute>
           } />
           <Route path="/user_payments" element={

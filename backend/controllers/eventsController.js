@@ -1,5 +1,5 @@
 const eventsModel = require("../models/eventsModel");
-
+const db = require('../db');
 module.exports = {
   addEvent: async (req, res) => {
     try {
@@ -132,56 +132,46 @@ module.exports = {
     res.status(200).json({ message: 'Event updated successfully' });
   });
 },
-updateVenue: (req, res) => {
-  const { venueId } = req.params;
-  const {
-    Venue_Name,
-    Street,
-    City,
-    District,
-    State,
-    Pincode,
-    Capacity
-  } = req.body;
+  // In your eventsController.js
+  updateVenue: (req, res) => {
+    const { venueId } = req.params;
+    const { venueName, city, capacity } = req.body;
 
-  // Validate required fields
-  if (!Venue_Name || !City || !Capacity) {
-    return res.status(400).json({ 
-      error: "Missing required fields",
-      missing: [
-        !Venue_Name && "Venue_Name",
-        !City && "City",
-        !Capacity && "Capacity"
-      ].filter(Boolean)
-    });
-  }
-
-  // Convert capacity to number
-  const capacityNum = parseInt(Capacity);
-  if (isNaN(capacityNum)) {
-    return res.status(400).json({ error: "Capacity must be a number" });
-  }
-
-  eventsModel.updateVenue(
-    venueId,
-    {
-      Venue_Name,
-      Street,
-      City,
-      District,
-      State,
-      Pincode,
-      Capacity: capacityNum
-    },
-    (err, result) => {
-      if (err) {
-        console.error('Error updating venue:', err);
-        return res.status(500).json({ error: 'Failed to update venue' });
-      }
-      return res.status(200).json({ message: 'Venue updated successfully' });
+    if (!venueName || !city || !capacity) {
+      return res.status(400).json({ 
+        error: "Venue name, city, and capacity are required" 
+      });
     }
-  );
-},
+
+    const query = `
+      UPDATE Venues SET
+        Venue_Name = ?,
+        Street = ?,
+        City = ?,
+        District = ?,
+        State = ?,
+        Pincode = ?,
+        Capacity = ?
+      WHERE Venue_ID = ?
+    `;
+
+    db.query(query, [
+      req.body.venueName,
+      req.body.street,
+      req.body.city,
+      req.body.district,
+      req.body.state,
+      req.body.pincode,
+      req.body.capacity,
+      venueId
+    ], (err) => {
+      if (err) {
+        console.error("Database error:", err);
+        return res.status(500).json({ error: "Failed to update venue" });
+      }
+      res.status(200).json({ message: "Venue updated successfully" });
+    });
+  },
 
   getAllVenues: (req, res) => {
   eventsModel.getAllVenues((err, result) => {

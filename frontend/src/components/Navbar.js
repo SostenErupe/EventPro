@@ -74,7 +74,6 @@ const Navbar = () => {
   ];
 
   const userLinks = [
-    { path: "/user_tickets", label: "My Tickets", icon: <Receipt /> },
     { path: "/book_tickets", label: "Book Tickets", icon: <Receipt /> }
   ];
 

@@ -110,19 +110,23 @@ getAllPayments: (req, res) => {
     });
   },
 
-  // Get user tickets
-  getUserTickets: (req, res) => {
-    const { userId } = req.params;
-
-    ticketsModel.getUserTickets(userId, (err, tickets) => {
-      if (err) {
-        console.error("Error fetching tickets:", err);
-        return res.status(500).json({ error: "Internal Server Error" });
+      // Get user tickets
+    getUserTickets: (req, res) => {
+      const { userId } = req.params;
+      
+      // Validate user ID
+      if (!userId || isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
       }
-      res.status(200).json(tickets); // Directly return array
-    });
-  },
 
+      ticketsModel.getUserTickets(userId, (err, tickets) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res.status(500).json({ error: "Failed to fetch tickets" });
+        }
+        res.status(200).json(tickets);
+      });
+    },
   // Get statistics
   getStatistics: (req, res) => {
     ticketsModel.getStatistics((err, statistics) => {

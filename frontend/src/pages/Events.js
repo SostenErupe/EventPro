@@ -114,15 +114,6 @@ const Events = () => {
       }
     },
     {
-      field: 'Time',
-      headerName: 'Time',
-      width: 150,
-      valueGetter: (params) => {
-        if (!params || !params.row) return ''; // prevent crash
-        return params.row.Event_Name ?? '';
-      },
-    },
-    {
       field: 'Available_Tickets',
       headerName: 'Availability',
       width: 150,
@@ -140,7 +131,7 @@ const Events = () => {
       width: 100,
       valueFormatter: (params) => {
         const value = Number(params?.value);
-        return isNaN(value) ? '$0.00' : `$${value.toFixed(2)}`;
+        return isNaN(value) ? 'Ksh 0.00' : `$${value.toFixed(2)}`;
       },
     },
     {

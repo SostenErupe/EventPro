@@ -14,42 +14,29 @@ const UserTickets = ({ userId }) => {
   const backendUrl = 'http://localhost:5000/api';
 
   const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${backendUrl}/events/getTickets/${userId}`);
-      
-      // Debugging: Log the full response
-      console.log('Full API response:', response);
-      
-      // Handle different response structures
-      const ticketsData = Array.isArray(response.data) 
-        ? response.data 
-        : response.data?.tickets || [];
-      
-      console.log('Processed tickets data:', ticketsData);
+  try {
+    setLoading(true);
+    const response = await axios.get(`${backendUrl}/events/getTickets/${userId}`);
+    
+    // Debugging logs
+    console.log("User ID sent:", userId);
+    console.log("Tickets received:", response.data);
 
-      const formattedTickets = ticketsData.map(ticket => ({
-        Ticket_ID: ticket.Ticket_ID,
-        Event_Name: ticket.Event_Name || 'Event Deleted',
-        Event_Date: ticket.Event_Date,
-        Purchase_Date: ticket.Purchase_Date || ticket.Booking_Date,
-        Quantity: ticket.Quantity,
-        Total_Price: ticket.Total_Price,
-        Status: ticket.Status || 'Pending'
-      }));
-
-      setTickets(formattedTickets);
-    } catch (error) {
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        config: error.config
-      });
-      setTickets([]);
-    } finally {
-      setLoading(false);
+    if (!Array.isArray(response.data)) {
+      throw new Error("Invalid response format");
     }
-  };
+
+    setTickets(response.data);
+  } catch (error) {
+    console.error("Fetch error:", {
+      message: error.message,
+      response: error.response?.data
+    });
+    setTickets([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchTickets();
