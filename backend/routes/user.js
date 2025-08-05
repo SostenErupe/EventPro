@@ -16,10 +16,6 @@ router.get('/profile', userController.getUserProfile); // Get current user's pro
 router.get('/getUserById:userId', userController.getUserDetails); // Get specific user's details
 router.put('/updateProfile', userController.updateProfile); // Update profile
 
-// Admin-only routes
-router.get('/admin/users', userController.getAllUsers); 
-router.put('/admin/users/:userId', userController.adminUpdateUser);
-
 // User payments routes
 
 module.exports = router;

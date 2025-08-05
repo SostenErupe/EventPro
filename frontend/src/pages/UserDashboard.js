@@ -229,7 +229,7 @@ const UserDashboard = () => {
                     }}
                     sx={{ mt: 1 }}
                   >
-                    {event.Available_Tickets > 0 ? 'Purchase Tickets' : 'Sold Out'}
+                    {event.Available_Tickets > 0 ? 'Purchase Ticket' : 'Sold Out'}
                   </Button>
                 </CardContent>
               </EventCard>
