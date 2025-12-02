@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'backend',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -77,7 +78,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'events',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': '9923',
         'HOST': 'localhost',
         'PORT': '3306',
         'TIME_ZONE': 'Africa/Nairobi',
