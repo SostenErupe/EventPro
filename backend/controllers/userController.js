@@ -11,7 +11,7 @@ module.exports = {
         console.error("Error executing query:", err);
         return res.status(500).json({ 
           success: false,
-          error: "Internal server error" 
+          error: "Internal server error"
         });
       }
 

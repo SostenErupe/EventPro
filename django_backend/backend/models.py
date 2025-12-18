@@ -33,6 +33,8 @@ class Event(models.Model):
     tickets_price = models.FloatField()
     available_tickets = models.IntegerField()
     venue_id = models.ForeignKey(Venue, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.event_name
