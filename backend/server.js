@@ -41,3 +41,4 @@ app.use('/api/payments', paymentsroutes)
 app.listen(port, () => {
   console.log(`Server is running on the port ${port}`);
 });
+///added env
