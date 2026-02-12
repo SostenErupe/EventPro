@@ -23,115 +23,120 @@ import TicketBooking from "./pages/TicketBooking";
 import UserPayments from "./pages/UserPayments";
 import PaymentVerification from "./pages/PaymentVerification";
 import PaymentPage from "./pages/PaymentsPage";
-import UserTickets from "./pages/UserTickets";
-import UserProfile from "./pages/UserProfile";
 
-// Role-based route wrapper
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user } = useAuthContext();
+// FIXED: ProtectedRoute now uses "element" prop pattern
+const ProtectedRoute = ({ element: Element, requiredRole, ...rest }) => {
+  const { user, authIsReady } = useAuthContext();
+  
+  console.log('ProtectedRoute - authIsReady:', authIsReady, 'user:', user);
+  
+  if (!authIsReady) {
+    return <div>Loading authentication...</div>;
+  }
   
   if (!user) {
     return <Navigate to="/login" replace />;
   }
   
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={user.role === 1 ? "/admin_dashboard" : "/user_dashboard"} replace />;
+  if (requiredRole && Number(user.role) !== requiredRole) {
+    console.log('Role mismatch. User role:', user.role, 'Required role:', requiredRole);
+    return <Navigate to={Number(user.role) === 1 ? "/admin_dashboard" : "/user_dashboard"} replace />;
   }
   
-  return children;
+  // FIXED: Return the element directly without re-creating
+  return Element;
 };
 
 function App() {
+  const { user, authIsReady } = useAuthContext();
+  
+  console.log('App - authIsReady:', authIsReady, 'user:', user);
+
   return (
     <div className="App">
       <BrowserRouter>
         <Navbar />
         <Routes>
           {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={
+            !user ? <Login /> : 
+            Number(user.role) === 1 ? <Navigate to="/admin_dashboard" replace /> : 
+            <Navigate to="/user_dashboard" replace />
+          } />
+          <Route path="/signup" element={
+            !user ? <Signup /> : 
+            Number(user.role) === 1 ? <Navigate to="/admin_dashboard" replace /> : 
+            <Navigate to="/user_dashboard" replace />
+          } />
           <Route path="/authentication" element={<Authentication />} />
           
-          {/* Admin-only routes */}
+          {/* FIXED: Admin-only routes - use element prop pattern */}
           <Route path="/admin_dashboard" element={
-            <ProtectedRoute requiredRole={1}>
-              <Dashboard />
-            </ProtectedRoute>
+            <ProtectedRoute 
+              requiredRole={1} 
+              element={<Dashboard />} 
+            />
           } />
           <Route path="/logs" element={
-            <ProtectedRoute requiredRole={1}>
-              <ActivityLog />
-            </ProtectedRoute>
-          } />
-          
-          {/* User-only routes */}
-          <Route path="/user_dashboard" element={
-            <ProtectedRoute requiredRole={2}>
-              <UserDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/book_tickets" element={
-            <ProtectedRoute>
-              <TicketBooking />
-            </ProtectedRoute>
-          } />
-          <Route path="/user_profile" element={
-            <ProtectedRoute>
-              <UserProfile />
-            </ProtectedRoute>
-          } />
-          {/* Shared authenticated routes */}
-          <Route path="/events" element={
-            <ProtectedRoute>
-              <Events />
-            </ProtectedRoute>
-          } />
-          <Route path="/venues" element={
-            <ProtectedRoute>
-              <Venues />
-            </ProtectedRoute>
-          } />
-          <Route path="/tickets" element={
-            <ProtectedRoute>
-              <Tickets />
-            </ProtectedRoute>
-          } />
-          <Route path="/user_payments" element={
-            <ProtectedRoute>
-              <UserPayments />
-            </ProtectedRoute>
-          } />
-          <Route path="/user_tickets" element={
-            <ProtectedRoute>
-              <UserTickets />
-            </ProtectedRoute>
-          } />
-          <Route path="/payment/:eventId" element={
-            <ProtectedRoute>
-              <PaymentPage />
-            </ProtectedRoute>
+            <ProtectedRoute 
+              requiredRole={1} 
+              element={<ActivityLog />} 
+            />
           } />
           <Route path="/payment_verification" element={
-            <ProtectedRoute>
-              <PaymentVerification />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
+            <ProtectedRoute 
+              requiredRole={1} 
+              element={<PaymentVerification />} 
+            />
           } />
           
-          {/* Root route redirects based on role */}
+          {/* FIXED: User-only routes - use element prop pattern */}
+          <Route path="/user_dashboard" element={
+            <ProtectedRoute 
+              requiredRole={2} 
+              element={<UserDashboard />} 
+            />
+          } />
+          
+          {/* FIXED: Shared authenticated routes */}
+          <Route path="/events" element={
+            <ProtectedRoute element={<Events />} />
+          } />
+          <Route path="/venues" element={
+            <ProtectedRoute element={<Venues />} />
+          } />
+          <Route path="/tickets" element={
+            <ProtectedRoute element={<Tickets />} />
+          } />
+          <Route path="/book_tickets" element={
+            <ProtectedRoute element={<TicketBooking />} />
+          } />
+          <Route path="/user_payments" element={
+            <ProtectedRoute element={<UserPayments />} />
+          } />
+          <Route path="/payment/:eventId" element={
+            <ProtectedRoute element={<PaymentPage />} />
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute element={<Profile />} />
+          } />
+          
+          {/* Root route redirect */}
           <Route path="/" element={
-            <ProtectedRoute>
-              {user => user.role === 1 ? (
+            !authIsReady ? <div>Loading...</div> :
+            user ? (
+              Number(user.role) === 1 ? (
                 <Navigate to="/admin_dashboard" replace />
               ) : (
                 <Navigate to="/user_dashboard" replace />
-              )}
-            </ProtectedRoute>
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
           } />
+          
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </div>

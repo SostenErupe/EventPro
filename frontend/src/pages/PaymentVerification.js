@@ -111,13 +111,25 @@ const PaymentVerification = () => {
       field: 'Amount',
       headerName: 'Amount',
       width: 120,
-      valueFormatter: (params) => `Ksh ${(params.value || 0).toFixed(2)}`
+      valueFormatter: (value) => {
+        const amount = value || 0;
+        return `Ksh ${Number(amount).toFixed(2)}`;
+      }
     },
     { 
       field: 'Payment_Date', 
       headerName: 'Date', 
       width: 120,
-      valueFormatter: (params) => new Date(params.value).toLocaleDateString()
+      valueFormatter: (value, row, column, apiRef) => {
+        if (!value) return 'N/A';
+        try {
+          const date = new Date(value);
+          if (isNaN(date.getTime())) return 'Invalid date';
+          return date.toLocaleDateString();
+        } catch {
+          return 'Invalid date';
+        }
+      }
     },
     {
       field: 'Payment_Status',

@@ -9,7 +9,6 @@ module.exports = {
         p.Amount,
         p.Payment_Status,
         p.Verification_Status,
-        p.Payment_Date,
         b.Booking_ID,
         u.User_ID,
         u.Name AS User_Name,

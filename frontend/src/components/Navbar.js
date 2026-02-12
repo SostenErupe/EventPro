@@ -20,10 +20,8 @@ import {
   LocationCity, 
   Logout, 
   Menu as MenuIcon,
-  People,
   Receipt,
   Settings,
-  ConfirmationNumber
 } from '@mui/icons-material';
 import { Link, useNavigate } from "react-router-dom";
 import { useLogout } from "../hooks/useLogout";
