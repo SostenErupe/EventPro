@@ -29,7 +29,10 @@ export const useLogin = () => {
         roleName: json.user.Role_Name || json.user.roleName
       };
 
-      // Store both user and token
+      // Store both user and token in both storages
+      // sessionStorage for per-tab independence, localStorage for persistence
+      sessionStorage.setItem('user', JSON.stringify(userData));
+      sessionStorage.setItem('token', json.token);
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', json.token);
 

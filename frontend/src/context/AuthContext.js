@@ -36,12 +36,23 @@ export const AuthContextProvider = ({ children }) => {
 
     useEffect(() => {
         const initializeAuth = () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            const token = localStorage.getItem('token');
+            // First check sessionStorage (for current tab session)
+            let user = JSON.parse(sessionStorage.getItem('user'));
+            let token = sessionStorage.getItem('token');
+
+            // If sessionStorage is empty, check localStorage as fallback
+            if (!user || !token) {
+                user = JSON.parse(localStorage.getItem('user'));
+                token = localStorage.getItem('token');
+                
+                // If we found data in localStorage, restore to sessionStorage
+                if (user && token) {
+                    sessionStorage.setItem('user', JSON.stringify(user));
+                    sessionStorage.setItem('token', token);
+                }
+            }
 
             if (!user || !token) {
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
                 dispatch({ type: 'AUTH_READY' });
                 return;
             }
@@ -62,6 +73,8 @@ export const AuthContextProvider = ({ children }) => {
                 console.error('Auth initialization error:', error);
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
+                sessionStorage.removeItem('user');
+                sessionStorage.removeItem('token');
             } finally {
                 dispatch({ type: 'AUTH_READY' });
             }

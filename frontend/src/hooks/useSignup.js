@@ -21,9 +21,18 @@ export const useSignup = () => {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // Save user to context and local storage
-      dispatch({ type: 'LOGIN', payload: data });
-      localStorage.setItem('user', JSON.stringify(data));
+      // Save user and token
+      const userData = data.user ? data : { user: data, token: data.token };
+      const userPayload = userData.user || userData;
+      const tokenPayload = userData.token || data.token;
+      
+      dispatch({ type: 'LOGIN', payload: { user: userPayload, token: tokenPayload } });
+      
+      // Store in both storages
+      sessionStorage.setItem('user', JSON.stringify(userPayload));
+      if (tokenPayload) sessionStorage.setItem('token', tokenPayload);
+      localStorage.setItem('user', JSON.stringify(userPayload));
+      if (tokenPayload) localStorage.setItem('token', tokenPayload);
       
       return data;
     } catch (error) {
