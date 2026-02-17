@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { FileCheck, QrCode, Scan, Users, Clock, LocateIcon } from "lucide-react";
 import { Card, Box , Button, Typography, Stack, Grid } from "@mui/material";
 import axios from "axios";
+import { useAuthContext } from "../hooks/useAuthContext";
 
 const Dashboard = () => {
+  const { authIsReady, user } = useAuthContext();
   const [stats, setStats] = useState({
     totalParticipants: 0,
     verifiedParticipants: 0,
@@ -16,12 +18,17 @@ const Dashboard = () => {
   const backendUrl = "http://localhost:5000";
 
   useEffect(() => {
+    if (!authIsReady || !user) return;
+
     const fetchData = async () => {
       try {
-        const [totalParticipants, attendance, activities] = await Promise.all([
-          axios.get(`${backendUrl}/api/verification/results`),
-          axios.get(`${backendUrl}/api/participants/get-all-attendees`),
-          axios.get(`${backendUrl}/api/activities/recent`)
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [totalParticipants, attendance, activitiesResponse] = await Promise.all([
+          axios.get(`${backendUrl}/api/verification/results`, { headers }),
+          axios.get(`${backendUrl}/api/participants/get-all-attendees`, { headers }),
+          axios.get(`${backendUrl}/api/activities/recent`, { headers })
         ]);
         
         setStats({
@@ -31,14 +38,14 @@ const Dashboard = () => {
           attendedParticipants: attendance.data.count,
         });
 
-        setActivities(activities.data.data);
+        setActivities(activitiesResponse.data.data);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
 
     fetchData();
-  }, []);
+  }, [authIsReady, user]);
 
   const getTimeAgo = (timestamp) => {
     const seconds = Math.floor((new Date().getTime() - new Date(timestamp).getTime()) / 1000);
@@ -118,7 +125,7 @@ const Dashboard = () => {
               {[
                 { icon: <FileCheck />, text: "Verify Payments", to: "/payment_verification", color: "primary" },
                 { icon: <LocateIcon />, text: "Venues", to: "/venues", color: "success" },
-                { icon: <Users />, text: "View All Participants", to: "/verify?tab=results", color: "warning" },
+                { icon: <Users />, text: "View All Participants", to: "/participants", color: "warning" },
               ].map((action, index) => (
                 <Grid item xs={12} sm={6} key={index}>
                   <Button
@@ -139,50 +146,6 @@ const Dashboard = () => {
                 </Grid>
               ))}
             </Grid>
-          </Card>
-        </Grid>
-
-        {/* Recent Activity */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>Recent Activity</Typography>
-            <Stack spacing={2}>
-              {activities.length > 0 ? (
-                activities.slice(0, 5).map((activity, index) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{
-                      width: 8,
-                      height: 8,
-                      bgcolor: 'primary.main',
-                      borderRadius: '50%',
-                      mr: 2
-                    }} />
-                    <Box>
-                      <Typography variant="body2">
-                        {activity.action} - {activity.user}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {getTimeAgo(activity.timestamp)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No recent activity
-                </Typography>
-              )}
-            </Stack>
-            <Box sx={{ mt: 2, textAlign: 'right' }}>
-              <Button
-                component={Link}
-                to="/logs"
-                size="small"
-                startIcon={<Clock />}
-              >
-                View all log activities
-              </Button>
-            </Box>
           </Card>
         </Grid>
       </Grid>

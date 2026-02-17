@@ -9,6 +9,13 @@ const db = require('./db');
 const userRoutes = require('./routes/user')
 const eventsRoutes = require('./routes/events')
 const paymentsroutes = require('./routes/payments')
+const participantsRoutes = require('./routes/participantsRoutes');
+const { 
+  getVerificationResults, 
+  getRecentActivities,
+  getAllAttendees
+} = require('./controllers/participantsController');
+const { protect } = require('./middleware/authMiddleware');
 
 const app = express();
 const port = 5000;
@@ -33,10 +40,18 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
 });
+// Add these lines to your server.js
+
 app.use(cors(corsOptions));
+
+// Direct API routes for dashboard
+app.get('/api/verification/results', protect, getVerificationResults);
+app.get('/api/activities/recent', protect, getRecentActivities);
+
 app.use('/api/user', userRoutes)
 app.use('/api/events', eventsRoutes)
 app.use('/api/payments', paymentsroutes)
+app.use('/api/participants', participantsRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on the port ${port}`);

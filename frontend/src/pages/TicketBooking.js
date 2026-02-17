@@ -91,7 +91,7 @@ const TicketBooking = ({ userId, onTicketPurchased }) => {
       <Card elevation={3}>
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ConfirmationNumber /> Book Tickets
+            <ConfirmationNumber /> Purchase Tickets
           </Typography>
           
           {error && (

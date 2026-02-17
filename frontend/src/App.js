@@ -23,28 +23,30 @@ import TicketBooking from "./pages/TicketBooking";
 import UserPayments from "./pages/UserPayments";
 import PaymentVerification from "./pages/PaymentVerification";
 import PaymentPage from "./pages/PaymentsPage";
+import Participants from "./pages/Participants";
+import ParticipantDetails from "./pages/ParticipantDetails";
 
-// FIXED: ProtectedRoute now uses "element" prop pattern
-const ProtectedRoute = ({ element: Element, requiredRole, ...rest }) => {
+// ProtectedRoute supports both `element` prop and `children`
+const ProtectedRoute = ({ element, children, requiredRole }) => {
   const { user, authIsReady } = useAuthContext();
-  
+
   console.log('ProtectedRoute - authIsReady:', authIsReady, 'user:', user);
-  
+
   if (!authIsReady) {
     return <div>Loading authentication...</div>;
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
+
   if (requiredRole && Number(user.role) !== requiredRole) {
     console.log('Role mismatch. User role:', user.role, 'Required role:', requiredRole);
     return <Navigate to={Number(user.role) === 1 ? "/admin_dashboard" : "/user_dashboard"} replace />;
   }
-  
-  // FIXED: Return the element directly without re-creating
-  return Element;
+
+  // Prefer explicit `element` prop; fall back to `children`
+  return element ? element : children ? children : null;
 };
 
 function App() {
@@ -102,13 +104,23 @@ function App() {
           <Route path="/events" element={
             <ProtectedRoute element={<Events />} />
           } />
+          <Route path="/participants" element={
+            <ProtectedRoute>
+              <Participants />
+            </ProtectedRoute>
+          } />
+          <Route path="/participant/:ticketId" element={
+            <ProtectedRoute>
+              <ParticipantDetails />
+            </ProtectedRoute>
+          } />
           <Route path="/venues" element={
             <ProtectedRoute element={<Venues />} />
           } />
           <Route path="/tickets" element={
             <ProtectedRoute element={<Tickets />} />
           } />
-          <Route path="/book_tickets" element={
+          <Route path="/purchase_tickets" element={
             <ProtectedRoute element={<TicketBooking />} />
           } />
           <Route path="/user_payments" element={
