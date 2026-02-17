@@ -263,13 +263,6 @@ const Participants = () => {
           >
             Refresh
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<Download />}
-            onClick={handleExport}
-          >
-            Export CSV
-          </Button>
         </Box>
       </Box>
 
