@@ -20,7 +20,6 @@ import {
   LocationCity, 
   Logout, 
   Menu as MenuIcon,
-  Receipt,
   Settings,
 } from '@mui/icons-material';
 import { Link, useNavigate } from "react-router-dom";
@@ -71,12 +70,13 @@ const Navbar = () => {
     { path: "/venues", label: "Venues", icon: <LocationCity /> },
   ];
 
-  const userLinks = [
-    { path: "/purchase_tickets", label: "Purchase Tickets", icon: <Receipt /> }
-  ];
-
   // Determine which links to show based on role
-  const navLinks = userRole === ROLES.ADMIN ? adminLinks : userLinks;
+  const navLinks = userRole === ROLES.ADMIN ? adminLinks : [];
+
+  // Get profile link based on role
+  const getProfileLink = () => {
+    return userRole === ROLES.ADMIN ? '/admin_profile' : '/user_profile';
+  };
 
   // Determine dashboard path based on role
   const dashboardPath = userRole === ROLES.ADMIN ? "/admin_dashboard" : "/user_dashboard";
@@ -112,7 +112,7 @@ const Navbar = () => {
             EventPro
           </Typography>
 
-          {user && !isMobile && (
+          {user && !isMobile && navLinks.length > 0 && (
             <Box sx={{ display: 'flex', gap: 1 }}>
               {navLinks.map((link) => (
                 <Button 
@@ -227,7 +227,7 @@ const Navbar = () => {
                   }
                 }}
               >
-                {navLinks.map((link) => (
+                {navLinks.length > 0 && navLinks.map((link) => (
                   <MenuItem 
                     key={link.path}
                     component={Link} 
@@ -240,22 +240,14 @@ const Navbar = () => {
                     </Box>
                   </MenuItem>
                 ))}
-                <Divider />
+                {navLinks.length > 0 && <Divider />}
                 <MenuItem 
                   component={Link} 
-                  to="/profile" 
+                  to={getProfileLink()} 
                   onClick={handleMenuClose}
                 >
                   <AccountCircle sx={{ mr: 1.5, fontSize: '1.25rem' }} /> 
                   Profile
-                </MenuItem>
-                <MenuItem 
-                  component={Link} 
-                  to="/settings" 
-                  onClick={handleMenuClose}
-                >
-                  <Settings sx={{ mr: 1.5, fontSize: '1.25rem' }} /> 
-                  Settings
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleLogout}>
@@ -294,19 +286,11 @@ const Navbar = () => {
                 <Divider />
                 <MenuItem 
                   component={Link} 
-                  to="/profile" 
+                  to={getProfileLink()} 
                   onClick={handleMenuClose}
                 >
                   <AccountCircle sx={{ mr: 1.5, fontSize: '1.25rem' }} /> 
                   My Profile
-                </MenuItem>
-                <MenuItem 
-                  component={Link} 
-                  to="/settings" 
-                  onClick={handleMenuClose}
-                >
-                  <Settings sx={{ mr: 1.5, fontSize: '1.25rem' }} /> 
-                  Settings
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleLogout}>

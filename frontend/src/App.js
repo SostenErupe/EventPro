@@ -14,6 +14,8 @@ import Signup from "./components/Signup";
 import Authentication from "./pages/Authentication";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import AdminProfile from "./pages/AdminProfile";
+import UserProfile from "./pages/UserProfile";
 import Events from "./pages/Events";
 import Venues from "./pages/Venues";
 import ActivityLog from "./pages/Activity_Log";
@@ -79,6 +81,12 @@ function App() {
               element={<Dashboard />} 
             />
           } />
+          <Route path="/admin_profile" element={
+            <ProtectedRoute 
+              requiredRole={1} 
+              element={<AdminProfile />} 
+            />
+          } />
           <Route path="/logs" element={
             <ProtectedRoute 
               requiredRole={1} 
@@ -97,6 +105,12 @@ function App() {
             <ProtectedRoute 
               requiredRole={2} 
               element={<UserDashboard />} 
+            />
+          } />
+          <Route path="/user_profile" element={
+            <ProtectedRoute 
+              requiredRole={2} 
+              element={<UserProfile />} 
             />
           } />
           

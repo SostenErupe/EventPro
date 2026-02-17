@@ -23,7 +23,7 @@ import {
   TableHead,
   TableRow
 } from '@mui/material';
-import { Edit, Save, Cancel, Lock, Email, Phone, Person, ConfirmationNumber } from '@mui/icons-material';
+import { Edit, Save, Cancel, Lock, Email, Phone, Person, Ticket } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuthContext } from '../hooks/useAuthContext';
 
@@ -362,6 +362,15 @@ const UserProfile = () => {
                     {userTickets.length}
                   </Typography>
                 </Box>
+
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Member Since
+                  </Typography>
+                  <Typography variant="body1">
+                    {profileData?.Created_At ? new Date(profileData.Created_At).toLocaleDateString() : 'N/A'}
+                  </Typography>
+                </Box>
               </Stack>
             </CardContent>
           </Card>
@@ -393,7 +402,7 @@ const UserProfile = () => {
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ConfirmationNumber sx={{ color: 'primary.main' }} />
+                    <Ticket sx={{ color: 'primary.main' }} />
                     Your Bookings
                   </Box>
                 </Typography>
