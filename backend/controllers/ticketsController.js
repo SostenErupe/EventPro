@@ -136,5 +136,26 @@ getAllPayments: (req, res) => {
       }
       res.status(200).json(statistics);
     });
+  },
+
+  // Cancel ticket endpoint
+  cancelTicket: (req, res) => {
+    const { ticketId } = req.params;
+    
+    // Validate ticket ID
+    if (!ticketId || isNaN(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    ticketsModel.cancelTicket(ticketId, (err, result) => {
+      if (err) {
+        console.error("Error cancelling ticket:", err);
+        return res.status(500).json({ error: "Failed to cancel ticket" });
+      }
+      res.status(200).json({ 
+        message: "Ticket cancelled successfully",
+        ticketId
+      });
+    });
   }
 };

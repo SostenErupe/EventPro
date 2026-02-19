@@ -22,6 +22,7 @@ router.delete('/deleteVenue/:venueId', eventsController.deleteOneVenue);
 router.post('/purchaseTicket', ticketsController.purchaseTicket);
 router.get('/getTickets/:userId', ticketsController.getUserTickets);
 router.post('/purchaseTicket', ticketsController.purchaseTicket);
+router.post('/cancelTicket/:ticketId', ticketsController.cancelTicket);
 
 router.get('/getStatistics', ticketsController.getStatistics);
 

@@ -77,6 +77,75 @@ module.exports = {
       callback(null, results);
     });
   },
+  // Cancel a ticket and process refund
+  cancelTicket: (ticketId, callback) => {
+    // Start by getting the ticket details
+    const ticketQuery = "SELECT Event_ID, Quantity FROM Tickets WHERE Ticket_ID = ?";
+    
+    db.query(ticketQuery, [ticketId], (err, ticketResults) => {
+      if (err) return callback(err);
+      if (!ticketResults || ticketResults.length === 0) {
+        return callback(new Error("Ticket not found"));
+      }
+
+      const eventId = ticketResults[0].Event_ID;
+      const quantity = ticketResults[0].Quantity;
+
+      // Get the booking ID and payment ID for this ticket
+      const bookingQuery = `
+        SELECT b.Booking_ID, p.Payment_ID, p.Booking_ID as PaymentBookingID
+        FROM Bookings b
+        JOIN Tickets t ON t.User_ID = b.User_ID AND t.Event_ID = b.Event_ID
+        LEFT JOIN Payments p ON p.Booking_ID = b.Booking_ID
+        WHERE t.Ticket_ID = ?
+        LIMIT 1
+      `;
+
+      db.query(bookingQuery, [ticketId], (err, bookingResults) => {
+        if (err) return callback(err);
+        
+        const bookingId = bookingResults[0]?.Booking_ID;
+        const paymentId = bookingResults[0]?.Payment_ID;
+
+        // Update ticket status to Cancelled
+        const updateTicketQuery = "UPDATE Tickets SET Status = 'Cancelled' WHERE Ticket_ID = ?";
+        
+        db.query(updateTicketQuery, [ticketId], (err) => {
+          if (err) return callback(err);
+
+          // Update payment status to Refunded
+          if (paymentId) {
+            const updatePaymentQuery = `
+              UPDATE Payments 
+              SET Payment_Status = 'Refunded', Verification_Status = 'Pending'
+              WHERE Payment_ID = ?
+            `;
+            
+            db.query(updatePaymentQuery, [paymentId], (err) => {
+              if (err) return callback(err);
+
+              // Restore available tickets
+              const restoreTicketsQuery = "UPDATE Events SET Available_Tickets = Available_Tickets + ? WHERE Event_ID = ?";
+              
+              db.query(restoreTicketsQuery, [quantity, eventId], (err) => {
+                if (err) return callback(err);
+                callback(null, { success: true, ticketId, paymentId });
+              });
+            });
+          } else {
+            // No payment found, just restore available tickets
+            const restoreTicketsQuery = "UPDATE Events SET Available_Tickets = Available_Tickets + ? WHERE Event_ID = ?";
+            
+            db.query(restoreTicketsQuery, [quantity, eventId], (err) => {
+              if (err) return callback(err);
+              callback(null, { success: true, ticketId });
+            });
+          }
+        });
+      });
+    });
+  },
+
   // Get statistics for admin dashboard
   getStatistics: (callback) => {
     const queries = {

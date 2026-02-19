@@ -3,7 +3,7 @@ import {
   Button, Card, Chip, Container, 
   Paper, Stack, Typography, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField
+  TextField, Box, Tabs, Tab
 } from '@mui/material';
 import { Refresh, Search, Check, Close } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
@@ -17,6 +17,7 @@ const PaymentVerification = () => {
   const [currentPayment, setCurrentPayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [verificationAction, setVerificationAction] = useState('');
+  const [tabValue, setTabValue] = useState(0); // 0: All, 1: Refunds, 2: Pending
 
   const backendUrl = 'http://localhost:5000/api';
 
@@ -48,12 +49,24 @@ const PaymentVerification = () => {
 
   const filteredPayments = payments.filter(payment => {
     const search = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       (payment.User_Name?.toLowerCase() || '').includes(search) ||
       (payment.Event_Name?.toLowerCase() || '').includes(search) ||
       (payment.Payment_Method?.toLowerCase() || '').includes(search) ||
       (payment.Payment_ID?.toString() || '').includes(search)
     );
+
+    // Apply tab filtering
+    if (tabValue === 1) {
+      // Show only refund requests
+      return matchesSearch && payment.Payment_Status === 'Refunded';
+    } else if (tabValue === 2) {
+      // Show only pending verifications
+      return matchesSearch && payment.Verification_Status === 'Pending';
+    }
+    
+    // Show all payments
+    return matchesSearch;
   });
 
   const handleRefund = async (paymentId) => {
@@ -70,7 +83,12 @@ const PaymentVerification = () => {
 
   const openVerifyDialog = (payment, action) => {
     setCurrentPayment(payment);
-    setVerificationAction(action);
+    // For refund requests, automatically set action as Verified
+    if (payment.Payment_Status === 'Refunded') {
+      setVerificationAction('Verified');
+    } else {
+      setVerificationAction(action);
+    }
     setVerifyDialogOpen(true);
   };
 
@@ -138,7 +156,12 @@ const PaymentVerification = () => {
       renderCell: (params) => (
         <Chip
           label={params.value}
-          color={params.value === 'Success' ? 'success' : 'error'}
+          color={
+            params.value === 'Success' ? 'success' : 
+            params.value === 'Refunded' ? 'warning' : 
+            'error'
+          }
+          variant={params.value === 'Refunded' ? 'filled' : 'outlined'}
         />
       )
     },
@@ -156,10 +179,29 @@ const PaymentVerification = () => {
     },
     {
       field: 'verifyActions',
-      headerName: 'Verify',
-      width: 200,
-      renderCell: (params) => (
-        params.row.Verification_Status === 'Pending' ? (
+      headerName: 'Action',
+      width: 220,
+      renderCell: (params) => {
+        // For refund requests
+        if (params.row.Payment_Status === 'Refunded') {
+          return params.row.Verification_Status === 'Pending' ? (
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              onClick={() => openVerifyDialog(params.row, 'Verified')}
+            >
+              Confirm Refund
+            </Button>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              {params.row.Verification_Status}
+            </Typography>
+          );
+        }
+
+        // For regular payments
+        return params.row.Verification_Status === 'Pending' ? (
           <Stack direction="row" spacing={1}>
             <Button
               variant="contained"
@@ -184,8 +226,8 @@ const PaymentVerification = () => {
           <Typography variant="body2" color="textSecondary">
             {params.row.Name || 'System'}
           </Typography>
-        )
-      )
+        );
+      }
     },
     {
       field: 'refundActions',
@@ -244,6 +286,18 @@ const PaymentVerification = () => {
           </Stack>
         </Stack>
 
+        <Tabs
+          value={tabValue}
+          onChange={(e, newValue) => setTabValue(newValue)}
+          sx={{ mb: 2 }}
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab label="All Payments" />
+          <Tab label={`Refund Requests (${payments.filter(p => p.Payment_Status === 'Refunded').length})`} />
+          <Tab label={`Pending Verification (${payments.filter(p => p.Verification_Status === 'Pending').length})`} />
+        </Tabs>
+
         <div style={{ height: 600, width: '100%' }}>
           <DataGrid
             rows={filteredPayments}
@@ -258,33 +312,60 @@ const PaymentVerification = () => {
       </Card>
 
       {/* Verification Dialog */}
-      <Dialog open={verifyDialogOpen} onClose={() => setVerifyDialogOpen(false)}>
+      <Dialog open={verifyDialogOpen} onClose={() => setVerifyDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {verificationAction === 'Verified' ? 'Approve' : 'Reject'} Payment #{currentPayment?.Payment_ID}
+          {currentPayment?.Payment_Status === 'Refunded' 
+            ? `Process Refund #${currentPayment?.Payment_ID}` 
+            : `${verificationAction === 'Verified' ? 'Approve' : 'Reject'} Payment #${currentPayment?.Payment_ID}`
+          }
         </DialogTitle>
         <DialogContent>
+          {currentPayment?.Payment_Status === 'Refunded' && (
+            <Box sx={{ mb: 2, p: 2, backgroundColor: 'warning.light', borderRadius: 1 }}>
+              <Typography variant="body2" fontWeight="bold" color="warning.dark">
+                This is a refund request from a cancelled ticket
+              </Typography>
+              <Typography variant="body2" color="warning.dark" sx={{ mt: 1 }}>
+                Amount to refund: Ksh {currentPayment?.Amount}
+              </Typography>
+            </Box>
+          )}
           <TextField
             autoFocus
             margin="dense"
-            label="Verification Notes"
+            label={currentPayment?.Payment_Status === 'Refunded' ? "Refund Processing Notes" : "Verification Notes"}
             fullWidth
             variant="outlined"
             multiline
             rows={4}
             value={verificationNotes}
             onChange={(e) => setVerificationNotes(e.target.value)}
+            placeholder={currentPayment?.Payment_Status === 'Refunded' 
+              ? "e.g., Refund processed via M-Pesa, reference: ..." 
+              : "Add any verification notes here..."}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setVerifyDialogOpen(false)}>Cancel</Button>
-        <Button 
-          onClick={handleVerify} // Use the fixed handler
-          color={verificationAction === 'Verified' ? 'success' : 'error'}
-          variant="contained"
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={24} /> : verificationAction === 'Verified' ? 'Approve' : 'Reject'}
-        </Button>
+          {currentPayment?.Payment_Status === 'Refunded' ? (
+            <Button 
+              onClick={handleVerify}
+              color="success"
+              variant="contained"
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Confirm Refund'}
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleVerify}
+              color={verificationAction === 'Verified' ? 'success' : 'error'}
+              variant="contained"
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : verificationAction === 'Verified' ? 'Approve' : 'Reject'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Container>

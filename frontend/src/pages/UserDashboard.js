@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Grid, Card, CardContent, Button, 
-  Chip, Avatar, Tabs, Tab, Paper, Divider, CircularProgress, Snackbar, Alert
+  Chip, Avatar, Tabs, Tab, Paper, Divider, CircularProgress, Snackbar, Alert,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { CalendarToday, LocationOn, ConfirmationNumber, Person, Logout } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -53,6 +54,11 @@ const UserDashboard = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedTicketForCancel, setSelectedTicketForCancel] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [ticketDetailsOpen, setTicketDetailsOpen] = useState(false);
+  const [selectedTicketDetails, setSelectedTicketDetails] = useState(null);
   const navigate = useNavigate();
 
   // Fetch user data from localStorage
@@ -178,6 +184,48 @@ const UserDashboard = () => {
   const handleCloseAlert = () => {
     setError(null);
     setSuccess(null);
+  };
+
+  const openCancelDialog = (ticket) => {
+    setSelectedTicketForCancel(ticket);
+    setCancelDialogOpen(true);
+  };
+
+  const closeCancelDialog = () => {
+    setCancelDialogOpen(false);
+    setSelectedTicketForCancel(null);
+  };
+
+  const handleCancelTicket = async () => {
+    if (!selectedTicketForCancel) return;
+
+    try {
+      setIsCancelling(true);
+      const ticketId = selectedTicketForCancel._id || selectedTicketForCancel.Ticket_ID;
+      
+      await axios.post(`${backendUrl}/events/cancelTicket/${ticketId}`);
+      
+      setSuccess('Ticket cancelled successfully! Your refund will be processed soon.');
+      closeCancelDialog();
+      
+      // Refresh tickets
+      await fetchTickets();
+    } catch (err) {
+      console.error('Error cancelling ticket:', err);
+      setError(err.response?.data?.error || 'Failed to cancel ticket. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const openTicketDetails = (ticket) => {
+    setSelectedTicketDetails(ticket);
+    setTicketDetailsOpen(true);
+  };
+
+  const closeTicketDetails = () => {
+    setTicketDetailsOpen(false);
+    setSelectedTicketDetails(null);
   };
 
   // Get loading state for current tab
@@ -369,10 +417,12 @@ const UserDashboard = () => {
                         {ticket.event?.title || ticket.Event_Name || 'Unknown Event'}
                       </Typography>
                       <Chip 
-                        label={ticket.status || ticket.Status} 
+                        label={ticket.Verification_Status || ticket.status || ticket.Status || 'Pending'} 
                         color={
-                          (ticket.status || ticket.Status) === 'Confirmed' ? 'success' : 
-                          (ticket.status || ticket.Status) === 'Cancelled' ? 'error' : 'warning'
+                          (ticket.Verification_Status || ticket.status || ticket.Status) === 'Verified' ? 'success' : 
+                          (ticket.Verification_Status || ticket.status || ticket.Status) === 'Rejected' ? 'error' :
+                          (ticket.Verification_Status || ticket.status || ticket.Status) === 'Confirmed' ? 'success' : 
+                          (ticket.Verification_Status || ticket.status || ticket.Status) === 'Cancelled' ? 'warning' : 'warning'
                         } 
                         size="small"
                       />
@@ -394,7 +444,7 @@ const UserDashboard = () => {
                       <Button 
                         size="small" 
                         sx={{ mr: 1 }}
-                        onClick={() => navigate(`/ticket/${ticket._id || ticket.Ticket_ID}`)}
+                        onClick={() => openTicketDetails(ticket)}
                       >
                         View Details
                       </Button>
@@ -402,7 +452,12 @@ const UserDashboard = () => {
                         size="small" 
                         variant="outlined"
                         color="error"
-                        disabled={(ticket.status || ticket.Status) === 'Cancelled'}
+                        disabled={
+                          (ticket.status || ticket.Status) === 'Cancelled' ||
+                          (ticket.Verification_Status === 'Rejected') ||
+                          (ticket.Verification_Status === 'Verified')
+                        }
+                        onClick={() => openCancelDialog(ticket)}
                       >
                         Cancel Ticket
                       </Button>
@@ -466,6 +521,208 @@ const UserDashboard = () => {
           </Box>
         )}
       </MainContent>
+
+      {/* Ticket Cancellation Dialog */}
+      <Dialog open={cancelDialogOpen} onClose={closeCancelDialog}>
+        <DialogTitle>Cancel Ticket Confirmation</DialogTitle>
+        <DialogContent sx={{ py: 3 }}>
+          <Typography variant="body1" gutterBottom>
+            Are you sure you want to cancel this ticket?
+          </Typography>
+          {selectedTicketForCancel && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: 'action.hover', borderRadius: 1 }}>
+              <Typography variant="body2">
+                <strong>Event:</strong> {selectedTicketForCancel.event?.title || selectedTicketForCancel.Event_Name}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Quantity:</strong> {selectedTicketForCancel.Quantity || selectedTicketForCancel.quantity}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Amount:</strong> Ksh {selectedTicketForCancel.Total_Price || selectedTicketForCancel.totalPrice}
+              </Typography>
+            </Box>
+          )}
+          <Typography variant="body2" color="warning.main" sx={{ mt: 2 }}>
+            Note: Your refund will be processed after admin verification.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCancelDialog} disabled={isCancelling}>
+            Keep Ticket
+          </Button>
+          <Button 
+            onClick={handleCancelTicket}
+            color="error"
+            variant="contained"
+            disabled={isCancelling}
+          >
+            {isCancelling ? <CircularProgress size={20} sx={{ mr: 1 }} /> : ''}
+            Cancel Ticket
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Ticket Details Modal */}
+      <Dialog open={ticketDetailsOpen} onClose={closeTicketDetails} maxWidth="sm" fullWidth>
+        <DialogTitle>Ticket Details</DialogTitle>
+        <DialogContent sx={{ py: 3 }}>
+          {selectedTicketDetails && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ p: 2, backgroundColor: 'primary.light', borderRadius: 1, color: 'primary.dark' }}>
+                <Typography variant="h6" fontWeight="bold">
+                  {selectedTicketDetails.event?.title || selectedTicketDetails.Event_Name || 'Event Name'}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Ticket Information
+                </Typography>
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">
+                      <strong>Ticket ID:</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      {selectedTicketDetails.Ticket_ID}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">
+                      <strong>Status:</strong>
+                    </Typography>
+                    <Chip
+                      label={selectedTicketDetails.Verification_Status || selectedTicketDetails.status || selectedTicketDetails.Status || 'Pending'}
+                      color={
+                        (selectedTicketDetails.Verification_Status || selectedTicketDetails.status || selectedTicketDetails.Status) === 'Verified' ? 'success' :
+                        (selectedTicketDetails.Verification_Status || selectedTicketDetails.status || selectedTicketDetails.Status) === 'Rejected' ? 'error' :
+                        (selectedTicketDetails.Verification_Status || selectedTicketDetails.status || selectedTicketDetails.Status) === 'Confirmed' ? 'success' :
+                        (selectedTicketDetails.Verification_Status || selectedTicketDetails.status || selectedTicketDetails.Status) === 'Cancelled' ? 'warning' : 'warning'
+                      }
+                      size="small"
+                    />
+                  </Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">
+                      <strong>Quantity:</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      {selectedTicketDetails.Quantity || selectedTicketDetails.quantity}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">
+                      <strong>Total Price:</strong>
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      Ksh {selectedTicketDetails.Total_Price || selectedTicketDetails.totalPrice}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Event Information
+                </Typography>
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">
+                      <strong>Date:</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatDate(selectedTicketDetails.Event_Date)}
+                    </Typography>
+                  </Box>
+                  {selectedTicketDetails.Event_Start_Time && (
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2">
+                        <strong>Time:</strong>
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedTicketDetails.Event_Start_Time}
+                        {selectedTicketDetails.Event_End_Time && ` - ${selectedTicketDetails.Event_End_Time}`}
+                      </Typography>
+                    </Box>
+                  )}
+                  {selectedTicketDetails.Venue_Name && (
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2">
+                        <strong>Venue:</strong>
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedTicketDetails.Venue_Name}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Payment Information
+                </Typography>
+                <Box sx={{ display: 'grid', gap: 1.5 }}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body2">
+                      <strong>Purchase Date:</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      {new Date(selectedTicketDetails.Purchase_Date || selectedTicketDetails.purchaseDate).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                  {selectedTicketDetails.Payment_Method && (
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2">
+                        <strong>Payment Method:</strong>
+                      </Typography>
+                      <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                        {selectedTicketDetails.Payment_Method.replace('_', ' ')}
+                      </Typography>
+                    </Box>
+                  )}
+                  {selectedTicketDetails.Payment_Status && (
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2">
+                        <strong>Payment Status:</strong>
+                      </Typography>
+                      <Chip
+                        label={selectedTicketDetails.Payment_Status}
+                        color={selectedTicketDetails.Payment_Status === 'Success' ? 'success' : 'error'}
+                        size="small"
+                      />
+                    </Box>
+                  )}
+                  {selectedTicketDetails.Verification_Status && (
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2">
+                        <strong>Verification:</strong>
+                      </Typography>
+                      <Chip
+                        label={selectedTicketDetails.Verification_Status}
+                        color={
+                          selectedTicketDetails.Verification_Status === 'Verified' ? 'success' :
+                          selectedTicketDetails.Verification_Status === 'Rejected' ? 'error' : 'warning'
+                        }
+                        size="small"
+                      />
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeTicketDetails}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardContainer>
   );
 };
