@@ -191,7 +191,7 @@ const EventForm = ({ open, onClose, event, refreshEvents }) => {
             />
             <TextField
               fullWidth
-              label="Ticket Price ($)"
+              label="Ticket Price (Ksh)"
               type="number"
               name="Ticket_Price"
               value={formData.Ticket_Price}
